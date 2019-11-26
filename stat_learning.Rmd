@@ -1,0 +1,150 @@
+---
+title: "stat_learning"
+author: "Clement Mugenzi"
+date: "11/26/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(glmnet)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+set.seed(11)
+```
+
+# Lasso
+
+let's start with lasso.
+
+lasso only helps when you have alot of predictor variables and few observations. one drawback of regression is lack of scalbility, so this is where lasso comes in. Lasso automatically selects variables of interest.
+
+```{r}
+bwt_df = 
+  read_csv("Data/birthweight.csv") %>% 
+  janitor::clean_names() %>%
+  mutate(
+    babysex = as.factor(babysex),
+    babysex = fct_recode(babysex, "male" = "1", "female" = "2"),
+    frace = as.factor(frace),
+    frace = fct_recode(frace, "white" = "1", "black" = "2", "asian" = "3", 
+                       "puerto rican" = "4", "other" = "8"),
+    malform = as.logical(malform),
+    mrace = as.factor(mrace),
+    mrace = fct_recode(mrace, "white" = "1", "black" = "2", "asian" = "3", 
+                       "puerto rican" = "4")) %>% 
+  sample_n(200)
+```
+
+get inputs for `glmnet`
+
+```{r}
+x = model.matrix(bwt ~ ., bwt_df)[,-1]
+y = bwt_df$bwt
+
+
+```
+
+fit lasso
+
+```{r}
+lambda = 10^(seq(3, -2, -0.1))
+
+lasso_fit =
+  glmnet(x, y, lambda = lambda)
+
+lasso_cv =
+  cv.glmnet(x, y, lambda = lambda)
+
+lambda_opt = lasso_cv$lambda.min
+
+lasso_fit = glmnet(x, y, lambda = lambda)
+```
+
+The plot below shows coefficient estimates corresponding to a subset of the predictors in the dataset.
+
+Plotting the `lasso` output 
+
+
+```{r}
+broom::tidy(lasso_fit) %>% 
+  select(term, lambda, estimate) %>% 
+  complete(term, lambda, fill = list(estimate = 0)) %>% 
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+  geom_path() + 
+  geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+  theme(legend.position = "none")
+```
+
+choosing the best lambda to use.
+
+```{r}
+broom::tidy(lasso_cv) %>% 
+  ggplot(aes(x = log(lambda, 10), y = estimate)) + 
+  geom_point() 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
